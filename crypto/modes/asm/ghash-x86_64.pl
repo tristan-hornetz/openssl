@@ -1609,6 +1609,7 @@ ___
 }
 
 $code.=<<___;
+.data
 .align	64
 .Lbswap_mask:
 	.byte	15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
@@ -1661,6 +1662,7 @@ $code.=<<___;
 	.value	0xBBF0,0xBA32,0xB874,0xB9B6,0xBCF8,0xBD3A,0xBF7C,0xBEBE
 
 .asciz	"GHASH for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
+.text
 .align	64
 ___
 

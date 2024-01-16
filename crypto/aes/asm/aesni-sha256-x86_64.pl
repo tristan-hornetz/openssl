@@ -168,6 +168,7 @@ $code.=<<___;
 .cfi_endproc
 .size	$func,.-$func
 
+.data
 .align	64
 .type	$TABLE,\@object
 $TABLE:
@@ -209,6 +210,8 @@ $TABLE:
 	.long	0,0,0,0,   0,0,0,0,   -1,-1,-1,-1
 	.long	0,0,0,0,   0,0,0,0
 	.asciz	"AESNI-CBC+SHA256 stitch for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
+.align	64
+.text
 .align	64
 ___
 
