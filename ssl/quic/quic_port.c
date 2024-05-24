@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2023-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -220,7 +220,7 @@ static int port_update_poll_desc(QUIC_PORT *port, BIO *net_bio, int for_write)
      * single pollable currently. In the future, once complete polling
      * infrastructure has been implemented, this limitation can be removed.
      *
-     * For now, just update the descriptor on the the engine's reactor as we are
+     * For now, just update the descriptor on the engine's reactor as we are
      * guaranteed to be the only port under it.
      */
     if (for_write)
@@ -315,6 +315,11 @@ static QUIC_CHANNEL *port_make_channel(QUIC_PORT *port, SSL *tls, int is_server)
     args.srtm       = port->srtm;
     if (args.tls == NULL)
         return NULL;
+
+#ifndef OPENSSL_NO_QLOG
+    args.use_qlog   = 1; /* disabled if env not set */
+    args.qlog_title = args.tls->ctx->qlog_title;
+#endif
 
     ch = ossl_quic_channel_new(&args);
     if (ch == NULL) {
@@ -499,6 +504,9 @@ static void port_default_packet_handler(QUIC_URXE *e, void *arg,
     if (!ossl_quic_port_is_running(port))
         goto undesirable;
 
+    if (port_try_handle_stateless_reset(port, e))
+        goto undesirable;
+
     if (dcid != NULL
         && ossl_quic_lcidm_lookup(port->lcidm, dcid, NULL,
                                   (void **)&ch)) {
@@ -506,9 +514,6 @@ static void port_default_packet_handler(QUIC_URXE *e, void *arg,
         ossl_quic_channel_inject(ch, e);
         return;
     }
-
-    if (port_try_handle_stateless_reset(port, e))
-        goto undesirable;
 
     /*
      * If we have an incoming packet which doesn't match any existing connection

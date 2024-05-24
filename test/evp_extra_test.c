@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2015-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -1164,7 +1164,7 @@ static int test_EC_priv_only_legacy(void)
         goto err;
     eckey = NULL;
 
-    while (dup_pk == NULL) {
+    for (;;) {
         ret = 0;
         ctx = EVP_MD_CTX_new();
         if (!TEST_ptr(ctx))
@@ -1180,6 +1180,9 @@ static int test_EC_priv_only_legacy(void)
         EVP_MD_CTX_free(ctx);
         ctx = NULL;
 
+        if (dup_pk != NULL)
+            break;
+
         if (!TEST_ptr(dup_pk = EVP_PKEY_dup(pkey)))
             goto err;
         /* EVP_PKEY_eq() returns -2 with missing public keys */
@@ -1189,6 +1192,7 @@ static int test_EC_priv_only_legacy(void)
         if (!ret)
             goto err;
     }
+    ret = 1;
 
  err:
     EVP_MD_CTX_free(ctx);
@@ -2717,6 +2721,47 @@ static int test_emptyikm_HKDF(void)
     return ret;
 }
 
+static int test_empty_salt_info_HKDF(void)
+{
+    EVP_PKEY_CTX *pctx;
+    unsigned char out[20];
+    size_t outlen;
+    int ret = 0;
+    unsigned char salt[] = "";
+    unsigned char key[] = "012345678901234567890123456789";
+    unsigned char info[] = "";
+    const unsigned char expected[] = {
+	0x67, 0x12, 0xf9, 0x27, 0x8a, 0x8a, 0x3a, 0x8f, 0x7d, 0x2c, 0xa3, 0x6a,
+	0xaa, 0xe9, 0xb3, 0xb9, 0x52, 0x5f, 0xe0, 0x06,
+    };
+    size_t expectedlen = sizeof(expected);
+
+    if (!TEST_ptr(pctx = EVP_PKEY_CTX_new_from_name(testctx, "HKDF", testpropq)))
+        goto done;
+
+    outlen = sizeof(out);
+    memset(out, 0, outlen);
+
+    if (!TEST_int_gt(EVP_PKEY_derive_init(pctx), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt,
+                                                        sizeof(salt) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_key(pctx, key,
+                                                       sizeof(key) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_add1_hkdf_info(pctx, info,
+                                                        sizeof(info) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_derive(pctx, out, &outlen), 0)
+            || !TEST_mem_eq(out, outlen, expected, expectedlen))
+        goto done;
+
+    ret = 1;
+
+ done:
+    EVP_PKEY_CTX_free(pctx);
+
+    return ret;
+}
+
 #ifndef OPENSSL_NO_EC
 static int test_X509_PUBKEY_inplace(void)
 {
@@ -3568,6 +3613,10 @@ static int test_evp_iv_aes(int idx)
             || !TEST_true(EVP_EncryptFinal_ex(ctx, ciphertext, &len)))
         goto err;
     ivlen = EVP_CIPHER_CTX_get_iv_length(ctx);
+
+    if (!TEST_int_gt(ivlen, 0))
+        goto err;
+
     if (!TEST_mem_eq(init_iv, ivlen, oiv, ivlen)
             || !TEST_mem_eq(ref_iv, ref_len, iv, ivlen))
         goto err;
@@ -3679,6 +3728,10 @@ static int test_evp_iv_des(int idx)
             || !TEST_true(EVP_EncryptFinal_ex(ctx, ciphertext, &len)))
         goto err;
     ivlen = EVP_CIPHER_CTX_get_iv_length(ctx);
+
+    if (!TEST_int_gt(ivlen, 0))
+        goto err;
+
     if (!TEST_mem_eq(init_iv, ivlen, oiv, ivlen)
             || !TEST_mem_eq(ref_iv, ref_len, iv, ivlen))
         goto err;
@@ -4293,7 +4346,8 @@ static int test_evp_updated_iv(int idx)
         errmsg = "CIPHER_CTX_GET_UPDATED_IV";
         goto err;
     }
-    if (!TEST_true(iv_len = EVP_CIPHER_CTX_get_iv_length(ctx))) {
+    iv_len = EVP_CIPHER_CTX_get_iv_length(ctx);
+    if (!TEST_int_ge(iv_len,0)) {
         errmsg = "CIPHER_CTX_GET_IV_LEN";
         goto err;
     }
@@ -5647,6 +5701,7 @@ int setup_tests(void)
 #endif
     ADD_TEST(test_HKDF);
     ADD_TEST(test_emptyikm_HKDF);
+    ADD_TEST(test_empty_salt_info_HKDF);
 #ifndef OPENSSL_NO_EC
     ADD_TEST(test_X509_PUBKEY_inplace);
     ADD_TEST(test_X509_PUBKEY_dup);

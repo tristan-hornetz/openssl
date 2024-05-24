@@ -204,7 +204,11 @@ This is an unapproved algorithm.
 
 =item X25519, see L<EVP_KEYMGMT-X25519(7)>
 
+This is an unapproved algorithm.
+
 =item X448, see L<EVP_KEYMGMT-X448(7)>
+
+This is an unapproved algorithm.
 
 =item ED25519, see L<EVP_KEYMGMT-ED25519(7)>
 
@@ -336,6 +340,8 @@ The FIPS module passes the following descriptions(s) to OSSL_SELF_TEST_onbegin()
 =item "RSA" (B<OSSL_SELF_TEST_DESC_PCT_RSA_PKCS1>)
 
 =item "ECDSA" (B<OSSL_SELF_TEST_DESC_PCT_ECDSA>)
+
+=item "EDDSA" (B<OSSL_SELF_TEST_DESC_PCT_EDDSA>)
 
 =item "DSA" (B<OSSL_SELF_TEST_DESC_PCT_DSA>)
 
@@ -505,7 +511,7 @@ This functionality was added in OpenSSL 3.0.
 
 =head1 COPYRIGHT
 
-Copyright 2019-2023 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2019-2024 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the Apache License 2.0 (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

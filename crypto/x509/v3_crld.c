@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1999-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -327,6 +327,7 @@ ASN1_CHOICE_cb(DIST_POINT_NAME, dpn_cb) = {
 
 
 IMPLEMENT_ASN1_FUNCTIONS(DIST_POINT_NAME)
+IMPLEMENT_ASN1_DUP_FUNCTION(DIST_POINT_NAME)
 
 ASN1_SEQUENCE(DIST_POINT) = {
         ASN1_EXP_OPT(DIST_POINT, distpoint, DIST_POINT_NAME, 0),

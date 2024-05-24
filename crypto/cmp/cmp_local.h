@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
  * Copyright Siemens AG 2015-2019
  *
@@ -64,6 +64,7 @@ struct ossl_cmp_ctx_st {
      * certificate responses (ip/cp/kup), revocation responses (rp), and PKIConf
      */
     int unprotectedErrors;
+    int noCacheExtraCerts;
     X509 *srvCert; /* certificate used to identify the server */
     X509 *validatedSrvCert; /* caches any already validated server cert */
     X509_NAME *expected_sender; /* expected sender in header of response */
@@ -210,6 +211,36 @@ DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CAKEYUPDANNCONTENT)
 typedef struct ossl_cmp_rootcakeyupdate_st OSSL_CMP_ROOTCAKEYUPDATE;
 DECLARE_ASN1_FUNCTIONS(OSSL_CMP_ROOTCAKEYUPDATE)
 
+typedef struct ossl_cmp_certreqtemplate_st OSSL_CMP_CERTREQTEMPLATE;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CERTREQTEMPLATE)
+
+/*-
+ * CRLSource ::= CHOICE {
+ *      dpn          [0] DistributionPointName,
+ *      issuer       [1] GeneralNames }
+ */
+
+typedef struct ossl_cmp_crlsource_st {
+    int type;
+    union {
+        DIST_POINT_NAME *dpn;
+        GENERAL_NAMES *issuer;
+    } value;
+} OSSL_CMP_CRLSOURCE;
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CRLSOURCE)
+
+/*
+ * CRLStatus ::= SEQUENCE {
+ *      source       CRLSource,
+ *      thisUpdate   Time OPTIONAL }
+ */
+
+struct ossl_cmp_crlstatus_st {
+    OSSL_CMP_CRLSOURCE *source;
+    ASN1_TIME *thisUpdate;
+}; /* OSSL_CMP_CRLSTATUS */
+DECLARE_ASN1_FUNCTIONS(OSSL_CMP_CRLSTATUS)
+
 /*-
  * declared already here as it will be used in OSSL_CMP_MSG (nested) and
  * infoType and infoValue
@@ -263,6 +294,11 @@ struct ossl_cmp_itav_st {
         X509 *rootCaCert;
         /* NID_id_it_rootCaKeyUpdate - Root CA Certificate Update */
         OSSL_CMP_ROOTCAKEYUPDATE *rootCaKeyUpdate;
+        /* NID_id_it_crlStatusList -  CRL Update Retrieval */
+        STACK_OF(OSSL_CMP_CRLSTATUS) *crlStatusList;
+        /* NID_id_it_crls - Certificate Status Lists */
+        STACK_OF(X509_CRL) *crls;
+
         /* this is to be used for so far undeclared objects */
         ASN1_TYPE *other;
     } infoValue;

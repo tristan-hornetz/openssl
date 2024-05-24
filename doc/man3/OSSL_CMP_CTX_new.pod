@@ -344,6 +344,11 @@ RFC 4210.
         Allow retrieving a trust anchor from extraCerts and using that
         to validate the certificate chain of an IP message.
 
+=item B<OSSL_CMP_OPT_NO_CACHE_EXTRACERTS>
+
+        Do not cache certificates received in the extraCerts CMP message field.
+        Otherwise they are stored to potentially help validate further messages.
+
 =back
 
 OSSL_CMP_CTX_get_option() reads the current value of the given option
@@ -472,6 +477,8 @@ of intermediate CAs that may be useful for path construction for the own CMP
 signer certificate, for the own TLS certificate (if any), when verifying peer
 CMP protection certificates, and when verifying newly enrolled certificates.
 The reference counts of those certificates handled successfully are increased.
+This list of untrusted certificates in I<ctx> will get augmented by extraCerts
+in received CMP messages unless B<OSSL_CMP_OPT_NO_CACHE_EXTRACERTS> is set.
 
 OSSL_CMP_CTX_get0_untrusted() returns a pointer to the
 list of untrusted certs in I<ctx>, which may be empty if unset.
@@ -857,7 +864,7 @@ OSSL_CMP_CTX_get0_geninfo_ITAVs() was added in OpenSSL 3.3.
 
 =head1 COPYRIGHT
 
-Copyright 2007-2023 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2007-2024 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the Apache License 2.0 (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

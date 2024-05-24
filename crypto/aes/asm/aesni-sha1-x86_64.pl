@@ -1738,7 +1738,7 @@ ___
 						}}}
 }
 $code.=<<___;
-.data
+.section .rodata align=64
 .align	64
 K_XX_XX:
 .long	0x5a827999,0x5a827999,0x5a827999,0x5a827999	# K_00_19
@@ -1750,8 +1750,7 @@ K_XX_XX:
 
 .asciz	"AESNI-CBC+SHA1 stitch for x86_64, CRYPTOGAMS by <appro\@openssl.org>"
 .align	64
-.text
-.align	64
+.previous
 ___
 						if ($shaext) {{{
 ($in0,$out,$len,$key,$ivp,$ctx,$inp)=("%rdi","%rsi","%rdx","%rcx","%r8","%r9","%r10");

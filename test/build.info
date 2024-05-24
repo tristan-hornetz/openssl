@@ -26,7 +26,7 @@ IF[{- !$disabled{tests} -}]
           testutil/format_output.c testutil/load.c testutil/fake_random.c \
           testutil/test_cleanup.c testutil/main.c testutil/testutil_init.c \
           testutil/options.c testutil/test_options.c testutil/provider.c \
-          testutil/apps_shims.c testutil/random.c $LIBAPPSSRC
+          testutil/apps_shims.c testutil/random.c testutil/helper.c $LIBAPPSSRC
   INCLUDE[libtestutil.a]=../include ../apps/include ..
   DEPEND[libtestutil.a]=../libcrypto
 
@@ -63,7 +63,8 @@ IF[{- !$disabled{tests} -}]
           provfetchtest prov_config_test rand_test \
           ca_internals_test bio_tfo_test membio_test bio_dgram_test list_test \
           fips_version_test x509_test hpke_test pairwise_fail_test \
-          nodefltctxtest evp_xof_test x509_load_cert_file_test
+          nodefltctxtest evp_xof_test x509_load_cert_file_test bio_meth_test \
+          x509_acert_test
 
   IF[{- !$disabled{'rpk'} -}]
     PROGRAMS{noinst}=rpktest
@@ -76,6 +77,10 @@ IF[{- !$disabled{tests} -}]
   IF[{- !$disabled{quic} -}]
     PROGRAMS{noinst}=priority_queue_test event_queue_test quicfaultstest quicapitest \
                      quic_newcid_test quic_srt_gen_test
+  ENDIF
+
+  IF[{- !$disabled{qlog} -}]
+    PROGRAMS{noinst}=json_test quic_qlog_test
   ENDIF
 
   IF[{- !$disabled{comp} && (!$disabled{brotli} || !$disabled{zstd} || !$disabled{zlib}) -}]
@@ -370,6 +375,12 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[quic_multistream_test]=../include ../apps/include
   DEPEND[quic_multistream_test]=../libcrypto.a ../libssl.a libtestutil.a
 
+  IF[{- !$disabled{'qlog'} -}]
+      SOURCE[quic_qlog_test]=quic_qlog_test.c
+      INCLUDE[quic_qlog_test]=../include ../apps/include
+      DEPEND[quic_qlog_test]=../libcrypto.a ../libssl.a libtestutil.a
+  ENDIF
+
   SOURCE[asynctest]=asynctest.c
   INCLUDE[asynctest]=../include ../apps/include
   DEPEND[asynctest]=../libcrypto
@@ -408,7 +419,7 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[lhash_test]=lhash_test.c
   INCLUDE[lhash_test]=../include ../apps/include
-  DEPEND[lhash_test]=../libcrypto libtestutil.a
+  DEPEND[lhash_test]=../libcrypto.a libtestutil.a
 
   SOURCE[dtlsv1listentest]=dtlsv1listentest.c
   INCLUDE[dtlsv1listentest]=../include ../apps/include
@@ -479,6 +490,10 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[bio_memleak_test]=../include ../apps/include
   DEPEND[bio_memleak_test]=../libcrypto libtestutil.a
 
+  SOURCE[bio_meth_test]=bio_meth_test.c
+  INCLUDE[bio_meth_test]=../include ../apps/include
+  DEPEND[bio_meth_test]=../libcrypto libtestutil.a
+
   SOURCE[bioprinttest]=bioprinttest.c
   INCLUDE[bioprinttest]=../include ../apps/include
   DEPEND[bioprinttest]=../libcrypto libtestutil.a
@@ -517,7 +532,7 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[sslapitest]=sslapitest.c helpers/ssltestlib.c filterprov.c tls-provider.c
   INCLUDE[sslapitest]=../include ../apps/include ..
-  DEPEND[sslapitest]=../libcrypto ../libssl libtestutil.a
+  DEPEND[sslapitest]=../libcrypto.a ../libssl.a libtestutil.a
 
   SOURCE[ssl_handshake_rtt_test]=ssl_handshake_rtt_test.c helpers/ssltestlib.c
   INCLUDE[ssl_handshake_rtt_test]=../include ../apps/include ..
@@ -880,6 +895,12 @@ IF[{- !$disabled{tests} -}]
       DEPEND[quic_srt_gen_test]=../libcrypto.a ../libssl.a libtestutil.a
     ENDIF
 
+    IF[{- !$disabled{qlog} -}]
+      SOURCE[json_test]=json_test.c helpers/ssltestlib.c $QUICTESTHELPERS
+      INCLUDE[json_test]=../include ../apps/include
+      DEPEND[json_test]=../libcrypto.a ../libssl.a libtestutil.a
+    ENDIF
+
     SOURCE[dhtest]=dhtest.c
     INCLUDE[dhtest]=../include ../apps/include
     DEPEND[dhtest]=../libcrypto.a libtestutil.a
@@ -1072,6 +1093,7 @@ IF[{- !$disabled{tests} -}]
   ENDIF
   IF[{- $disabled{module} || !$target{dso_scheme} -}]
     DEFINE[provider_test]=NO_PROVIDER_MODULE
+    DEFINE[prov_config_test]=NO_PROVIDER_MODULE
     DEFINE[provider_internal_test]=NO_PROVIDER_MODULE
   ENDIF
   DEPEND[]=provider_internal_test.cnf
@@ -1184,6 +1206,10 @@ ENDIF
   SOURCE[cert_comp_test]=cert_comp_test.c helpers/ssltestlib.c
   INCLUDE[cert_comp_test]=../include ../apps/include ..
   DEPEND[cert_comp_test]=../libcrypto ../libssl libtestutil.a
+
+  SOURCE[x509_acert_test]=x509_acert_test.c
+  INCLUDE[x509_acert_test]=../include ../apps/include
+  DEPEND[x509_acert_test]=../libcrypto libtestutil.a
 
 {-
    use File::Spec::Functions;

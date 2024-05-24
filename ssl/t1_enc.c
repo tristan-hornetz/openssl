@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright 2005 Nokia. All rights reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -227,6 +227,9 @@ int tls1_change_cipher_state(SSL_CONNECTION *s, int which)
 
         direction = OSSL_RECORD_DIRECTION_WRITE;
     }
+
+    if (SSL_CONNECTION_IS_DTLS(s))
+        dtls1_increment_epoch(s, which);
 
     if (!ssl_set_new_record_layer(s, s->version, direction,
                                     OSSL_RECORD_PROTECTION_LEVEL_APPLICATION,

@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 # -*- mode: perl; -*-
-# Copyright 2016-2023 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the Apache License 2.0 (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -77,6 +77,10 @@ EOF
 #               Generic OpenSSL-style methods relating to this support
 #               are always compiled but return NULL if the hardware
 #               support isn't compiled.
+#
+# enable-demos  Enable the building of the example code in the demos directory
+# enable-h3demo Enable the http3 demo, which currently only links to the
+#               external nghttp3 library on unix platforms
 # no-hw         do not compile support for any crypto hardware.
 # [no-]threads  [don't] try to create a library that is suitable for
 #               multithreaded applications (default is "threads" if we
@@ -420,6 +424,7 @@ my @disablables = (
     "asan",
     "asm",
     "async",
+    "atexit",
     "autoalginit",
     "autoerrinit",
     "autoload-config",
@@ -442,6 +447,8 @@ my @disablables = (
     "crypto-mdebug",
     "ct",
     "default-thread-pool",
+    "demos",
+    "h3demo",
     "deprecated",
     "des",
     "devcryptoeng",
@@ -485,11 +492,13 @@ my @disablables = (
     "ocsp",
     "padlockeng",
     "pic",
+    "pie",
     "pinshared",
     "poly1305",
     "posix-io",
     "psk",
     "quic",
+    "unstable-qlog",
     "rc2",
     "rc4",
     "rc5",
@@ -520,6 +529,7 @@ my @disablables = (
     "thread-pool",
     "threads",
     "tls",
+    "integrity-only-ciphers",
     "trace",
     "ts",
     "ubsan",
@@ -568,12 +578,15 @@ our %disabled = ( # "what"         => "comment"
                   "buildtest-c++"       => "default",
                   "crypto-mdebug"       => "default",
                   "crypto-mdebug-backtrace" => "default",
+                  "demos"               => "default",
+                  "h3demo"              => "default",
                   "devcryptoeng"        => "default",
                   "ec_nistp_64_gcc_128" => "default",
                   "egd"                 => "default",
                   "external-tests"      => "default",
                   "fuzz-afl"            => "default",
                   "fuzz-libfuzzer"      => "default",
+                  "pie"                 => "default",
                   "ktls"                => "default",
                   "md2"                 => "default",
                   "msan"                => "default",
@@ -596,7 +609,7 @@ our %disabled = ( # "what"         => "comment"
 my @disable_cascades = (
     # "what"            => [ "cascade", ... ]
     "bulk"              => [ "shared", "dso",
-                             "aria", "async", "autoload-config",
+                             "aria", "async", "atexit", "autoload-config",
                              "blake2", "bf", "camellia", "cast", "chacha",
                              "cmac", "cms", "cmp", "comp", "ct",
                              "des", "dgram", "dh", "dsa",
@@ -631,6 +644,7 @@ my @disable_cascades = (
     sub { 0 == scalar grep { !$disabled{$_} } @tls }
                         => [ "tls" ],
     "tls1_3"            => [ "quic" ],
+    "quic"              => [ "unstable-qlog" ],
 
     "crypto-mdebug"     => [ "crypto-mdebug-backtrace" ],
 
@@ -802,7 +816,7 @@ my %cmdvars = ();               # Stores FOO='blah' type arguments
 my %unsupported_options = ();
 my %deprecated_options = ();
 # If you change this, update apps/version.c
-my @known_seed_sources = qw(getrandom devrandom os egd none rdcpu librandom);
+my @known_seed_sources = qw(getrandom devrandom os egd none rdcpu);
 my @seed_sources = ();
 while (@argvcopy)
         {
@@ -931,6 +945,10 @@ while (@argvcopy)
                 elsif ($1 eq "brotli-dynamic")
                         {
                         delete $disabled{"brotli"};
+                        }
+                elsif ($1 eq "pie")
+                        {
+                        delete $disabled{"pie"};
                         }
                 elsif ($1 eq "zstd-dynamic")
                         {
@@ -1550,6 +1568,10 @@ foreach (grep /^-fsanitize=/, @{$config{CFLAGS} || []}) {
 # code knows about it.  Any other flag is taken care of by the configs.
 unless($disabled{threads}) {
     push @{$config{openssl_feature_defines}}, "OPENSSL_THREADS";
+}
+
+if ($disabled{"unstable-qlog"}) {
+    $disabled{"qlog"} = 1;
 }
 
 my $no_shared_warn=0;
@@ -2479,10 +2501,11 @@ EOF
                     && $f =~ m/^(.*?)\|(.*)$/) {
                     $i = $1;
                     $m = $2;
-                    $i = cleanfile($sourced, $i, $blddir, 1);
-                    $i2 = cleanfile($buildd, $i, $blddir);
+                    # We must be very careful to modify $i last
                     $d = cleanfile($sourced, "$i/$m", $blddir, 1);
                     $d2 = cleanfile($buildd, "$i/$m", $blddir);
+                    $i2 = cleandir($buildd, $i, $blddir);
+                    $i = cleandir($sourced, $i, $blddir, 1);
                 } else {
                     $d = cleanfile($sourced, $f, $blddir, 1);
                     $d2 = cleanfile($buildd, $f, $blddir);
